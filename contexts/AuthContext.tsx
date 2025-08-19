@@ -175,9 +175,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
+      console.log('Logging out...');
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.log('Logout error:', error);
+        Alert.alert('Error', 'Failed to logout. Please try again.');
+      } else {
+        console.log('Logout successful');
+        // The auth state change listener will handle updating the state
+      }
     } catch (error) {
       console.log('Logout error:', error);
+      Alert.alert('Error', 'Failed to logout. Please try again.');
     }
   };
 

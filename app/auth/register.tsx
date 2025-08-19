@@ -1,5 +1,5 @@
 
-import Icon from '../../components/Icon';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,30 +11,24 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { useAuth } from '../../contexts/AuthContext';
-import React, { useState } from 'react';
-import Button from '../../components/Button';
-import { router } from 'expo-router';
 import { colors, commonStyles } from '../../styles/commonStyles';
+import { router } from 'expo-router';
+import Icon from '../../components/Icon';
+import { useAuth } from '../../contexts/AuthContext';
+import Button from '../../components/Button';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function RegisterScreen() {
   const { register } = useAuth();
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const insets = useSafeAreaInsets();
 
   const handleRegister = async () => {
-    if (!name || !email || !password || !confirmPassword) {
+    if (!email || !password || !name) {
       Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
       return;
     }
 
@@ -47,13 +41,11 @@ export default function RegisterScreen() {
     try {
       const result = await register(email, password, name);
       if (result.success) {
-        Alert.alert(
-          'Registration Successful',
-          'Please check your email to verify your account before signing in.',
-          [{ text: 'OK', onPress: () => router.replace('/auth/login') }]
-        );
+        Alert.alert('Success', result.message || 'Registration successful!', [
+          { text: 'OK', onPress: () => router.replace('/auth/login') }
+        ]);
       } else {
-        Alert.alert('Registration Failed', result.message || 'Failed to create account');
+        Alert.alert('Registration Failed', result.message || 'Registration failed');
       }
     } catch (error) {
       console.log('Registration error:', error);
@@ -95,6 +87,7 @@ export default function RegisterScreen() {
                 value={name}
                 onChangeText={setName}
                 placeholder="Enter your name"
+                autoCapitalize="words"
                 placeholderTextColor={colors.textSecondary}
               />
             </View>
@@ -118,19 +111,7 @@ export default function RegisterScreen() {
                 style={styles.input}
                 value={password}
                 onChangeText={setPassword}
-                placeholder="Enter your password"
-                secureTextEntry
-                placeholderTextColor={colors.textSecondary}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Confirm Password</Text>
-              <TextInput
-                style={styles.input}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                placeholder="Confirm your password"
+                placeholder="Enter your password (min 6 characters)"
                 secureTextEntry
                 placeholderTextColor={colors.textSecondary}
               />
@@ -190,6 +171,7 @@ const styles = StyleSheet.create({
   registerButton: {
     marginTop: 20,
     marginBottom: 20,
+    backgroundColor: colors.primary,
   },
   loginLink: {
     alignItems: 'center',

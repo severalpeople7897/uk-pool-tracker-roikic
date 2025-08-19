@@ -1,17 +1,38 @@
+
+import React from 'react';
 import { Text, TouchableOpacity, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { colors } from '../styles/commonStyles';
 
 interface ButtonProps {
-  text: string;
+  title?: string;
+  text?: string;
   onPress: () => void;
   style?: ViewStyle | ViewStyle[];
   textStyle?: TextStyle;
+  disabled?: boolean;
 }
 
-export default function Button({ text, onPress, style, textStyle }: ButtonProps) {
+export default function Button({ title, text, onPress, style, textStyle, disabled = false }: ButtonProps) {
+  const buttonText = title || text || 'Button';
+  
   return (
-    <TouchableOpacity style={[styles.button, style]} onPress={onPress} activeOpacity={0.7}>
-      <Text style={[styles.buttonText, textStyle]}>{text}</Text>
+    <TouchableOpacity 
+      style={[
+        styles.button, 
+        disabled && styles.buttonDisabled,
+        style
+      ]} 
+      onPress={onPress} 
+      activeOpacity={0.7}
+      disabled={disabled}
+    >
+      <Text style={[
+        styles.buttonText, 
+        disabled && styles.buttonTextDisabled,
+        textStyle
+      ]}>
+        {buttonText}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -19,19 +40,26 @@ export default function Button({ text, onPress, style, textStyle }: ButtonProps)
 const styles = StyleSheet.create({
   button: {
     backgroundColor: colors.primary,
-    padding: 14,
-    borderRadius: 8,
-    marginTop: 10,
-    width: '100%',
-    boxShadow: '0px 2px 3.84px rgba(0, 0, 0, 0.25)',
-    elevation: 5,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 50,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
+    elevation: 3,
+  },
+  buttonDisabled: {
+    backgroundColor: colors.grey,
+    opacity: 0.6,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.backgroundAlt,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
     textAlign: 'center',
+  },
+  buttonTextDisabled: {
+    color: colors.textSecondary,
   },
 });

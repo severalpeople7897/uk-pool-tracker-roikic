@@ -1,4 +1,5 @@
 
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,7 +12,6 @@ import {
 import { colors, commonStyles } from '../styles/commonStyles';
 import Icon from '../components/Icon';
 import Button from '../components/Button';
-import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { DataService } from '../services/dataService';
 import { router } from 'expo-router';
@@ -27,6 +27,7 @@ export default function AddGameScreen() {
   const [player2Score, setPlayer2Score] = useState('');
   const [showPlayer1Selector, setShowPlayer1Selector] = useState(false);
   const [showPlayer2Selector, setShowPlayer2Selector] = useState(false);
+  const [loading, setLoading] = useState(false);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -61,6 +62,7 @@ export default function AddGameScreen() {
       return;
     }
 
+    setLoading(true);
     try {
       const matchData = {
         player1Id: player1.id,
@@ -78,6 +80,8 @@ export default function AddGameScreen() {
     } catch (error) {
       console.log('Error adding match:', error);
       Alert.alert('Error', 'Failed to add match');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -183,8 +187,9 @@ export default function AddGameScreen() {
           </View>
 
           <Button
-            title="Add Match"
+            title={loading ? "Adding Match..." : "Add Match"}
             onPress={handleSubmit}
+            disabled={loading}
             style={styles.submitButton}
           />
         </View>
@@ -206,6 +211,8 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
+    borderRadius: 8,
+    backgroundColor: colors.card,
   },
   placeholder: {
     width: 40,
@@ -279,5 +286,6 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     marginTop: 32,
+    backgroundColor: colors.primary,
   },
 });

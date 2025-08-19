@@ -1,5 +1,5 @@
 
-import Icon from '../../components/Icon';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,11 +11,11 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { useAuth } from '../../contexts/AuthContext';
-import React, { useState } from 'react';
-import Button from '../../components/Button';
-import { router } from 'expo-router';
 import { colors, commonStyles } from '../../styles/commonStyles';
+import { router } from 'expo-router';
+import Icon from '../../components/Icon';
+import { useAuth } from '../../contexts/AuthContext';
+import Button from '../../components/Button';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
@@ -35,7 +35,9 @@ export default function LoginScreen() {
     try {
       const result = await login(email, password);
       if (result.success) {
-        router.replace('/(tabs)');
+        Alert.alert('Success', 'Login successful!', [
+          { text: 'OK', onPress: () => router.replace('/(tabs)') }
+        ]);
       } else {
         Alert.alert('Login Failed', result.message || 'Invalid credentials');
       }
@@ -151,6 +153,7 @@ const styles = StyleSheet.create({
   loginButton: {
     marginTop: 20,
     marginBottom: 20,
+    backgroundColor: colors.primary,
   },
   registerLink: {
     alignItems: 'center',
