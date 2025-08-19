@@ -26,10 +26,51 @@ export interface Match {
   created_by: string;
   created_at: string;
   updated_at: string;
+  // Enhanced logging fields
+  match_type: 'singles' | 'teams';
+  win_method: 'normal' | 'foul' | 'forfeit' | 'timeout' | null;
+  location: string | null;
+  match_date: string;
+  notes: string | null;
+  // Team support
+  team1_id: string | null;
+  team2_id: string | null;
+  winning_team_id: string | null;
   // Joined data
   player1?: Player;
   player2?: Player;
   winner?: Player;
+  team1?: Team;
+  team2?: Team;
+  winning_team?: Team;
+  fouls?: MatchFoul[];
+}
+
+export interface Team {
+  id: string;
+  name: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  members?: TeamMember[];
+}
+
+export interface TeamMember {
+  id: string;
+  team_id: string;
+  player_id: string;
+  created_at: string;
+  player?: Player;
+}
+
+export interface MatchFoul {
+  id: string;
+  match_id: string;
+  player_id: string;
+  foul_count: number;
+  foul_details: string | null;
+  created_at: string;
+  player?: Player;
 }
 
 export interface LeagueStanding {

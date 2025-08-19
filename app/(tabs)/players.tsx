@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Icon from '../../components/Icon';
 import { colors, commonStyles } from '../../styles/commonStyles';
-import { View, Text, ScrollView, StyleSheet, TextInput, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TextInput, RefreshControl, TouchableOpacity } from 'react-native';
 import PlayerCard from '../../components/PlayerCard';
 import { router, useFocusEffect } from 'expo-router';
 import { Player } from '../../types';
@@ -54,7 +54,16 @@ export default function PlayersScreen() {
         }
       >
         <View style={commonStyles.section}>
-          <Text style={commonStyles.title}>Players</Text>
+          <View style={styles.header}>
+            <Text style={commonStyles.title}>Players</Text>
+            <TouchableOpacity
+              style={styles.teamsButton}
+              onPress={() => router.push('/teams')}
+            >
+              <Icon name="people" size={20} color={colors.primary} />
+              <Text style={styles.teamsButtonText}>Teams</Text>
+            </TouchableOpacity>
+          </View>
           
           <View style={styles.searchContainer}>
             <Icon name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
@@ -86,6 +95,28 @@ export default function PlayersScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  teamsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  teamsButtonText: {
+    fontSize: 14,
+    color: colors.primary,
+    marginLeft: 4,
+    fontWeight: '600',
+  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
