@@ -1,32 +1,59 @@
 
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
 import { colors, commonStyles } from '../../styles/commonStyles';
-import { mockMatches } from '../../data/mockData';
 import MatchCard from '../../components/MatchCard';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
+import { Match } from '../../types';
+import { DataService } from '../../services/dataService';
+import { useFocusEffect } from 'expo-router';
+
+type FilterType = 'all' | 'completed' | 'scheduled';
 
 export default function MatchesScreen() {
-  console.log('Matches screen rendered');
-  
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'completed' | 'scheduled'>('all');
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [selectedFilter, setSelectedFilter] = useState<FilterType>('all');
+  const [refreshing, setRefreshing] = useState(false);
 
-  const filteredMatches = mockMatches.filter(match => {
+  const loadMatches = async () => {
+    try {
+      const matchesData = await DataService.getMatches();
+      setMatches(matchesData.reverse()); // Most recent first
+    } catch (error) {
+      console.log('Error loading matches:', error);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadMatches();
+    setRefreshing(false);
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      loadMatches();
+    }, [])
+  );
+
+  const filteredMatches = matches.filter(match => {
     if (selectedFilter === 'all') return true;
     return match.status === selectedFilter;
   });
 
-  const FilterButton = ({ filter, title }: { filter: typeof selectedFilter, title: string }) => (
+  const FilterButton = ({ filter, title }: { filter: FilterType, title: string }) => (
     <TouchableOpacity
       style={[
         styles.filterButton,
-        selectedFilter === filter && styles.activeFilterButton
+        selectedFilter === filter && styles.activeFilterButton,
       ]}
       onPress={() => setSelectedFilter(filter)}
     >
-      <Text style={[
-        styles.filterText,
-        selectedFilter === filter && styles.activeFilterText
-      ]}>
+      <Text
+        style={[
+          styles.filterButtonText,
+          selectedFilter === filter && styles.activeFilterButtonText,
+        ]}
+      >
         {title}
       </Text>
     </TouchableOpacity>
@@ -34,77 +61,64 @@ export default function MatchesScreen() {
 
   return (
     <View style={commonStyles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={commonStyles.title}>Matches</Text>
-        </View>
-
-        <View style={styles.filterContainer}>
-          <FilterButton filter="all" title="All" />
-          <FilterButton filter="completed" title="Completed" />
-          <FilterButton filter="scheduled" title="Scheduled" />
-        </View>
-
+      <ScrollView 
+        style={commonStyles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <View style={commonStyles.section}>
+          <Text style={commonStyles.title}>Matches</Text>
+          
+          <View style={styles.filterContainer}>
+            <FilterButton filter="all" title="All" />
+            <FilterButton filter="completed" title="Completed" />
+            <FilterButton filter="scheduled" title="Scheduled" />
+          </View>
+
           {filteredMatches.length > 0 ? (
             filteredMatches.map((match) => (
               <MatchCard key={match.id} match={match} />
             ))
           ) : (
-            <View style={[commonStyles.card, styles.emptyState]}>
-              <Text style={commonStyles.textSecondary}>
-                No {selectedFilter === 'all' ? '' : selectedFilter} matches found
-              </Text>
-            </View>
+            <Text style={styles.emptyText}>No matches found</Text>
           )}
         </View>
-
-        <View style={styles.bottomSpacing} />
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  header: {
-    alignItems: 'center',
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-  },
   filterContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 20,
     gap: 8,
   },
   filterButton: {
-    flex: 1,
-    paddingVertical: 8,
     paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: colors.grey,
-    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   activeFilterButton: {
     backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
-  filterText: {
+  filterButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: colors.textSecondary,
+    color: colors.text,
   },
-  activeFilterText: {
+  activeFilterButtonText: {
     color: colors.backgroundAlt,
   },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    marginHorizontal: 16,
-  },
-  bottomSpacing: {
-    height: 20,
+  emptyText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 40,
   },
 });

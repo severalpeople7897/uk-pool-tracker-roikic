@@ -1,34 +1,61 @@
 
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import React, { useState, useEffect, useCallback } from 'react';
 import { colors, commonStyles } from '../../styles/commonStyles';
-import { mockPlayers, mockMatches } from '../../data/mockData';
 import PlayerCard from '../../components/PlayerCard';
+import { View, Text, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import MatchCard from '../../components/MatchCard';
+import { router, useFocusEffect } from 'expo-router';
+import { Player, Match } from '../../types';
+import { DataService } from '../../services/dataService';
 
 export default function LeagueScreen() {
-  console.log('League screen rendered');
-  
-  const topPlayers = mockPlayers.slice(0, 3);
-  const upcomingMatches = mockMatches.filter(match => match.status === 'scheduled').slice(0, 3);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [recentMatches, setRecentMatches] = useState<Match[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadData = async () => {
+    try {
+      const [playersData, matchesData] = await Promise.all([
+        DataService.getPlayers(),
+        DataService.getMatches(),
+      ]);
+      
+      setPlayers(playersData.slice(0, 5)); // Top 5 players
+      setRecentMatches(matchesData.slice(-3).reverse()); // Last 3 matches
+    } catch (error) {
+      console.log('Error loading data:', error);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
 
   const handlePlayerPress = (playerId: string) => {
-    console.log('Player pressed:', playerId);
     router.push(`/player/${playerId}`);
   };
 
   return (
     <View style={commonStyles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={commonStyles.title}>English Pool League</Text>
-          <Text style={commonStyles.textSecondary}>Season 2024</Text>
-        </View>
-
+      <ScrollView 
+        style={commonStyles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <View style={commonStyles.section}>
-          <Text style={commonStyles.subtitle}>Top Players</Text>
-          {topPlayers.map((player, index) => (
+          <Text style={commonStyles.title}>Pool League</Text>
+          
+          <Text style={styles.sectionTitle}>League Standings</Text>
+          {players.map((player, index) => (
             <PlayerCard
               key={player.id}
               player={player}
@@ -36,42 +63,33 @@ export default function LeagueScreen() {
               onPress={() => handlePlayerPress(player.id)}
             />
           ))}
-        </View>
-
-        <View style={commonStyles.section}>
-          <Text style={commonStyles.subtitle}>Upcoming Matches</Text>
-          {upcomingMatches.length > 0 ? (
-            upcomingMatches.map((match) => (
+          
+          <Text style={styles.sectionTitle}>Recent Matches</Text>
+          {recentMatches.length > 0 ? (
+            recentMatches.map((match) => (
               <MatchCard key={match.id} match={match} />
             ))
           ) : (
-            <View style={[commonStyles.card, styles.emptyState]}>
-              <Text style={commonStyles.textSecondary}>No upcoming matches scheduled</Text>
-            </View>
+            <Text style={styles.emptyText}>No recent matches</Text>
           )}
         </View>
-
-        <View style={styles.bottomSpacing} />
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: 24,
+    marginBottom: 12,
   },
-  header: {
-    alignItems: 'center',
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    marginHorizontal: 16,
-  },
-  bottomSpacing: {
-    height: 20,
+  emptyText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 20,
   },
 });

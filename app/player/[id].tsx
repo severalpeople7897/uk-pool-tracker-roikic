@@ -1,20 +1,40 @@
 
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
-import { colors, commonStyles } from '../../styles/commonStyles';
-import { mockPlayers, mockMatches } from '../../data/mockData';
-import MatchCard from '../../components/MatchCard';
+import React, { useState, useEffect } from 'react';
 import Icon from '../../components/Icon';
+import { colors, commonStyles } from '../../styles/commonStyles';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import MatchCard from '../../components/MatchCard';
+import { useLocalSearchParams, router } from 'expo-router';
+import { Player, Match } from '../../types';
+import { DataService } from '../../services/dataService';
 
 export default function PlayerDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  console.log('Player detail screen rendered for ID:', id);
+  const { id } = useLocalSearchParams();
+  const [player, setPlayer] = useState<Player | null>(null);
+  const [playerMatches, setPlayerMatches] = useState<Match[]>([]);
 
-  const player = mockPlayers.find(p => p.id === id);
-  const playerMatches = mockMatches.filter(
-    match => match.player1Id === id || match.player2Id === id
-  );
+  useEffect(() => {
+    loadPlayerData();
+  }, [id]);
+
+  const loadPlayerData = async () => {
+    try {
+      const [players, matches] = await Promise.all([
+        DataService.getPlayers(),
+        DataService.getMatches(),
+      ]);
+
+      const foundPlayer = players.find(p => p.id === id);
+      setPlayer(foundPlayer || null);
+
+      const filteredMatches = matches.filter(
+        match => match.player1Id === id || match.player2Id === id
+      ).reverse(); // Most recent first
+      setPlayerMatches(filteredMatches);
+    } catch (error) {
+      console.log('Error loading player data:', error);
+    }
+  };
 
   if (!player) {
     return (
@@ -26,8 +46,8 @@ export default function PlayerDetailScreen() {
 
   const StatCard = ({ title, value, subtitle }: { title: string; value: string; subtitle?: string }) => (
     <View style={styles.statCard}>
-      <Text style={styles.statTitle}>{title}</Text>
       <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statTitle}>{title}</Text>
       {subtitle && <Text style={styles.statSubtitle}>{subtitle}</Text>}
     </View>
   );
@@ -35,55 +55,39 @@ export default function PlayerDetailScreen() {
   return (
     <View style={commonStyles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Icon name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={commonStyles.title}>Player Profile</Text>
-        <View style={styles.placeholder} />
+        <Text style={styles.headerTitle}>Player Details</Text>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.playerHeader}>
-          <View style={styles.playerInfo}>
-            <Text style={styles.playerName}>{player.name}</Text>
-            <Text style={styles.playerRank}>Rank #{player.ranking}</Text>
-          </View>
-        </View>
-
-        <View style={styles.statsGrid}>
-          <StatCard title="Points" value={player.points.toString()} />
-          <StatCard title="Games Played" value={player.gamesPlayed.toString()} />
-          <StatCard title="Wins" value={player.gamesWon.toString()} />
-          <StatCard title="Losses" value={player.gamesLost.toString()} />
-          <StatCard 
-            title="Win Rate" 
-            value={`${player.winPercentage}%`}
-            subtitle={`${player.gamesWon}/${player.gamesPlayed} games`}
-          />
-          <StatCard 
-            title="Form" 
-            value="W-W-L-W"
-            subtitle="Last 4 games"
-          />
-        </View>
-
+      <ScrollView style={commonStyles.content}>
         <View style={commonStyles.section}>
-          <Text style={commonStyles.subtitle}>Recent Matches</Text>
+          <View style={styles.playerHeader}>
+            <View style={styles.rankBadge}>
+              <Text style={styles.rankText}>#{player.ranking}</Text>
+            </View>
+            <Text style={styles.playerName}>{player.name}</Text>
+          </View>
+
+          <View style={styles.statsGrid}>
+            <StatCard title="Games Played" value={player.gamesPlayed.toString()} />
+            <StatCard title="Games Won" value={player.gamesWon.toString()} />
+            <StatCard title="Games Lost" value={player.gamesLost.toString()} />
+            <StatCard title="Win Rate" value={`${player.winPercentage}%`} />
+            <StatCard title="Points" value={player.points.toString()} />
+            <StatCard title="Ranking" value={`#${player.ranking}`} />
+          </View>
+
+          <Text style={styles.sectionTitle}>Match History</Text>
           {playerMatches.length > 0 ? (
             playerMatches.map((match) => (
               <MatchCard key={match.id} match={match} />
             ))
           ) : (
-            <View style={[commonStyles.card, styles.emptyState]}>
-              <Text style={commonStyles.textSecondary}>No matches found</Text>
-            </View>
+            <Text style={styles.emptyText}>No matches played yet</Text>
           )}
         </View>
-
-        <View style={styles.bottomSpacing} />
       </ScrollView>
     </View>
   );
@@ -93,83 +97,86 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 60,
+    paddingBottom: 20,
+    backgroundColor: colors.backgroundAlt,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    backgroundColor: colors.backgroundAlt,
   },
   backButton: {
-    padding: 8,
+    marginRight: 16,
   },
-  placeholder: {
-    width: 40,
-  },
-  scrollView: {
-    flex: 1,
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: colors.text,
   },
   playerHeader: {
     alignItems: 'center',
-    paddingVertical: 32,
-    paddingHorizontal: 20,
+    marginBottom: 24,
   },
-  playerInfo: {
-    alignItems: 'center',
+  rankBadge: {
+    backgroundColor: colors.accent,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginBottom: 12,
   },
-  playerName: {
-    fontSize: 24,
+  rankText: {
+    fontSize: 16,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 4,
   },
-  playerRank: {
-    fontSize: 16,
-    color: colors.primary,
-    fontWeight: '600',
+  playerName: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'center',
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 20,
+    justifyContent: 'space-between',
     marginBottom: 24,
-    gap: 12,
   },
   statCard: {
     backgroundColor: colors.card,
     borderRadius: 12,
     padding: 16,
-    alignItems: 'center',
     width: '48%',
+    marginBottom: 12,
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
-    elevation: 2,
-  },
-  statTitle: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 4,
-    textAlign: 'center',
   },
   statValue: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '700',
+    color: colors.primary,
+    marginBottom: 4,
+  },
+  statTitle: {
+    fontSize: 14,
+    fontWeight: '500',
     color: colors.text,
     textAlign: 'center',
   },
   statSubtitle: {
-    fontSize: 10,
+    fontSize: 12,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 16,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: colors.textSecondary,
     textAlign: 'center',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    marginHorizontal: 16,
-  },
-  bottomSpacing: {
-    height: 20,
+    marginTop: 20,
   },
 });
