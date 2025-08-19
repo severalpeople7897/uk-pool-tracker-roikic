@@ -68,17 +68,12 @@ export default function AddGameScreen() {
       const winnerId = score1 > score2 ? selectedPlayer1.id : selectedPlayer2.id;
       
       await DataService.addMatch({
-        player1Id: selectedPlayer1.id,
-        player2Id: selectedPlayer2.id,
-        player1Name: selectedPlayer1.name,
-        player2Name: selectedPlayer2.name,
-        player1Score: score1,
-        player2Score: score2,
-        winnerId,
-        date: new Date().toISOString().split('T')[0],
-        status: 'completed',
-        week: Math.ceil(Date.now() / (7 * 24 * 60 * 60 * 1000)),
-        createdBy: user?.id,
+        player1_id: selectedPlayer1.id,
+        player2_id: selectedPlayer2.id,
+        player1_score: score1,
+        player2_score: score2,
+        winner_id: winnerId,
+        created_by: user?.id || '',
       });
 
       Alert.alert('Success', 'Game added successfully!', [

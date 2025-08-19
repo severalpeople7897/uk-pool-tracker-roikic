@@ -43,11 +43,17 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      const success = await register(email.trim(), password, name.trim());
-      if (success) {
-        router.replace('/(tabs)');
+      const result = await register(email.trim(), password, name.trim());
+      if (result.success) {
+        if (result.message) {
+          Alert.alert('Registration Successful', result.message, [
+            { text: 'OK', onPress: () => router.replace('/auth/login') }
+          ]);
+        } else {
+          router.replace('/(tabs)');
+        }
       } else {
-        Alert.alert('Error', 'Email already exists');
+        Alert.alert('Registration Failed', result.message || 'Email already exists');
       }
     } catch (error) {
       console.log('Registration error:', error);

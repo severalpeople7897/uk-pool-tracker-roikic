@@ -19,18 +19,13 @@ export default function PlayerDetailScreen() {
 
   const loadPlayerData = async () => {
     try {
-      const [players, matches] = await Promise.all([
-        DataService.getPlayers(),
-        DataService.getMatches(),
+      const [foundPlayer, matches] = await Promise.all([
+        DataService.getPlayerById(id as string),
+        DataService.getMatchesForPlayer(id as string),
       ]);
 
-      const foundPlayer = players.find(p => p.id === id);
-      setPlayer(foundPlayer || null);
-
-      const filteredMatches = matches.filter(
-        match => match.player1Id === id || match.player2Id === id
-      ).reverse(); // Most recent first
-      setPlayerMatches(filteredMatches);
+      setPlayer(foundPlayer);
+      setPlayerMatches(matches);
     } catch (error) {
       console.log('Error loading player data:', error);
     }
@@ -71,10 +66,10 @@ export default function PlayerDetailScreen() {
           </View>
 
           <View style={styles.statsGrid}>
-            <StatCard title="Games Played" value={player.gamesPlayed.toString()} />
-            <StatCard title="Games Won" value={player.gamesWon.toString()} />
-            <StatCard title="Games Lost" value={player.gamesLost.toString()} />
-            <StatCard title="Win Rate" value={`${player.winPercentage}%`} />
+            <StatCard title="Games Played" value={player.games_played.toString()} />
+            <StatCard title="Games Won" value={player.games_won.toString()} />
+            <StatCard title="Games Lost" value={player.games_lost.toString()} />
+            <StatCard title="Win Rate" value={`${player.win_percentage}%`} />
             <StatCard title="Points" value={player.points.toString()} />
             <StatCard title="Ranking" value={`#${player.ranking}`} />
           </View>

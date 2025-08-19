@@ -31,11 +31,11 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      const success = await login(email.trim(), password);
-      if (success) {
+      const result = await login(email.trim(), password);
+      if (result.success) {
         router.replace('/(tabs)');
       } else {
-        Alert.alert('Error', 'Invalid email or password');
+        Alert.alert('Login Failed', result.message || 'Invalid email or password');
       }
     } catch (error) {
       console.log('Login error:', error);

@@ -14,6 +14,7 @@ export const colors = {
   border: '#E9ECEF',       // Light border
   success: '#198754',      // Green for wins
   danger: '#DC3545',       // Red for losses
+  error: '#DC3545',        // Red for errors
   warning: '#FFC107',      // Yellow for draws
 };
 

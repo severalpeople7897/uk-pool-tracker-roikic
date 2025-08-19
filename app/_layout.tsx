@@ -7,9 +7,6 @@ import { Platform, SafeAreaView } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { setupErrorLogging } from '../utils/errorLogger';
 import { AuthProvider } from '../contexts/AuthContext';
-import { DataService } from '../services/dataService';
-
-const STORAGE_KEY = '@pool_league_onboarding_complete';
 
 export default function RootLayout() {
   const insets = useSafeAreaInsets();
@@ -20,7 +17,6 @@ export default function RootLayout() {
     const initializeApp = async () => {
       try {
         setupErrorLogging();
-        await DataService.initializeData();
         console.log('App initialized successfully');
       } catch (error) {
         console.log('Error initializing app:', error);

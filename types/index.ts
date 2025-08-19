@@ -1,28 +1,35 @@
 
 export interface Player {
   id: string;
+  user_id: string;
   name: string;
-  gamesPlayed: number;
-  gamesWon: number;
-  gamesLost: number;
+  email: string;
+  games_played: number;
+  games_won: number;
+  games_lost: number;
   points: number;
-  winPercentage: number;
+  win_percentage: number;
   ranking: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Match {
   id: string;
-  player1Id: string;
-  player2Id: string;
-  player1Name: string;
-  player2Name: string;
-  player1Score: number;
-  player2Score: number;
-  winnerId: string | null;
-  date: string;
+  player1_id: string;
+  player2_id: string;
+  player1_score: number;
+  player2_score: number;
+  winner_id: string | null;
   status: 'scheduled' | 'completed' | 'in-progress';
   week: number;
-  createdBy?: string; // User who created this match
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  player1?: Player;
+  player2?: Player;
+  winner?: Player;
 }
 
 export interface LeagueStanding {
@@ -34,8 +41,8 @@ export interface LeagueStanding {
 export interface User {
   id: string;
   email: string;
-  name: string;
-  createdAt: string;
+  name?: string;
+  created_at?: string;
 }
 
 export interface AuthState {

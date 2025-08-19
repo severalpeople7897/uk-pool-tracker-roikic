@@ -9,7 +9,91 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      user_profiles: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          email: string
+          games_played: number
+          games_won: number
+          games_lost: number
+          points: number
+          win_percentage: number
+          ranking: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          email: string
+          games_played?: number
+          games_won?: number
+          games_lost?: number
+          points?: number
+          win_percentage?: number
+          ranking?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          email?: string
+          games_played?: number
+          games_won?: number
+          games_lost?: number
+          points?: number
+          win_percentage?: number
+          ranking?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      matches: {
+        Row: {
+          id: string
+          player1_id: string
+          player2_id: string
+          player1_score: number
+          player2_score: number
+          winner_id: string | null
+          status: string
+          week: number
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          player1_id: string
+          player2_id: string
+          player1_score?: number
+          player2_score?: number
+          winner_id?: string | null
+          status?: string
+          week?: number
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          player1_id?: string
+          player2_id?: string
+          player1_score?: number
+          player2_score?: number
+          winner_id?: string | null
+          status?: string
+          week?: number
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

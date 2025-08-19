@@ -1,20 +1,16 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User, AuthState } from '../types';
+import { supabase } from '../app/integrations/supabase/client';
+import { Alert } from 'react-native';
 
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, name: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  register: (email: string, password: string, name: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const STORAGE_KEYS = {
-  USER: '@pool_league_user',
-  USERS: '@pool_league_users',
-};
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>({
@@ -25,18 +21,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     checkAuthState();
-  }, []);
-
-  const checkAuthState = async () => {
-    try {
-      const userJson = await AsyncStorage.getItem(STORAGE_KEYS.USER);
-      if (userJson) {
-        const user = JSON.parse(userJson);
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
+      
+      if (session?.user) {
+        const user: User = {
+          id: session.user.id,
+          email: session.user.email!,
+          name: session.user.user_metadata?.name,
+          created_at: session.user.created_at,
+        };
+        
         setAuthState({
           isAuthenticated: true,
           user,
           loading: false,
         });
+        
+        // Create or update user profile
+        await createOrUpdateUserProfile(user);
+      } else {
+        setAuthState({
+          isAuthenticated: false,
+          user: null,
+          loading: false,
+        });
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const checkAuthState = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        const user: User = {
+          id: session.user.id,
+          email: session.user.email!,
+          name: session.user.user_metadata?.name,
+          created_at: session.user.created_at,
+        };
+        
+        setAuthState({
+          isAuthenticated: true,
+          user,
+          loading: false,
+        });
+        
+        // Create or update user profile
+        await createOrUpdateUserProfile(user);
       } else {
         setAuthState({
           isAuthenticated: false,
@@ -54,80 +93,89 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const createOrUpdateUserProfile = async (user: User) => {
     try {
-      // Get stored users
-      const usersJson = await AsyncStorage.getItem(STORAGE_KEYS.USERS);
-      const users = usersJson ? JSON.parse(usersJson) : [];
-      
-      // Find user with matching email and password
-      const user = users.find((u: any) => u.email === email && u.password === password);
-      
-      if (user) {
-        const { password: _, ...userWithoutPassword } = user;
-        await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
-        setAuthState({
-          isAuthenticated: true,
-          user: userWithoutPassword,
-          loading: false,
-        });
-        return true;
+      const { data: existingProfile } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!existingProfile) {
+        // Create new profile
+        const { error } = await supabase
+          .from('user_profiles')
+          .insert({
+            user_id: user.id,
+            name: user.name || user.email.split('@')[0],
+            email: user.email,
+          });
+
+        if (error) {
+          console.log('Error creating user profile:', error);
+        } else {
+          console.log('User profile created successfully');
+        }
       }
-      return false;
     } catch (error) {
-      console.log('Login error:', error);
-      return false;
+      console.log('Error creating/updating user profile:', error);
     }
   };
 
-  const register = async (email: string, password: string, name: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
     try {
-      // Get existing users
-      const usersJson = await AsyncStorage.getItem(STORAGE_KEYS.USERS);
-      const users = usersJson ? JSON.parse(usersJson) : [];
-      
-      // Check if user already exists
-      if (users.find((u: any) => u.email === email)) {
-        return false;
-      }
-      
-      // Create new user
-      const newUser = {
-        id: Date.now().toString(),
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
-        name,
-        createdAt: new Date().toISOString(),
-      };
-      
-      // Save to users list
-      users.push(newUser);
-      await AsyncStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-      
-      // Auto-login the new user
-      const { password: _, ...userWithoutPassword } = newUser;
-      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
-      setAuthState({
-        isAuthenticated: true,
-        user: userWithoutPassword,
-        loading: false,
       });
-      
-      return true;
+
+      if (error) {
+        console.log('Login error:', error);
+        return { success: false, message: error.message };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.log('Login error:', error);
+      return { success: false, message: 'An unexpected error occurred' };
+    }
+  };
+
+  const register = async (email: string, password: string, name: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: 'https://natively.dev/email-confirmed',
+          data: {
+            name: name,
+          }
+        }
+      });
+
+      if (error) {
+        console.log('Registration error:', error);
+        return { success: false, message: error.message };
+      }
+
+      if (data.user && !data.session) {
+        return { 
+          success: true, 
+          message: 'Registration successful! Please check your email to verify your account before logging in.' 
+        };
+      }
+
+      return { success: true };
     } catch (error) {
       console.log('Registration error:', error);
-      return false;
+      return { success: false, message: 'An unexpected error occurred' };
     }
   };
 
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem(STORAGE_KEYS.USER);
-      setAuthState({
-        isAuthenticated: false,
-        user: null,
-        loading: false,
-      });
+      await supabase.auth.signOut();
     } catch (error) {
       console.log('Logout error:', error);
     }

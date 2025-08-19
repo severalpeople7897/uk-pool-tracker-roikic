@@ -39,11 +39,11 @@ export default function PlayerCard({ player, position, onPress }: PlayerCardProp
           <Text style={styles.statLabel}>Points</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{player.gamesWon}-{player.gamesLost}</Text>
+          <Text style={styles.statValue}>{player.games_won}-{player.games_lost}</Text>
           <Text style={styles.statLabel}>W-L</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{player.winPercentage}%</Text>
+          <Text style={styles.statValue}>{player.win_percentage}%</Text>
           <Text style={styles.statLabel}>Win %</Text>
         </View>
       </View>

@@ -50,23 +50,23 @@ export default function MatchCard({ match }: MatchCardProps) {
             {match.status.charAt(0).toUpperCase() + match.status.slice(1)}
           </Text>
         </View>
-        <Text style={styles.date}>{formatDate(match.date)}</Text>
+        <Text style={styles.date}>{formatDate(match.created_at)}</Text>
       </View>
 
       <View style={styles.matchContainer}>
         <View style={styles.playerContainer}>
           <Text style={[
             styles.playerName,
-            match.winnerId === match.player1Id && styles.winner
+            match.winner_id === match.player1_id && styles.winner
           ]}>
-            {match.player1Name}
+            {match.player1?.name || 'Player 1'}
           </Text>
           {match.status === 'completed' && (
             <Text style={[
               styles.score,
-              match.winnerId === match.player1Id && styles.winnerScore
+              match.winner_id === match.player1_id && styles.winnerScore
             ]}>
-              {match.player1Score}
+              {match.player1_score}
             </Text>
           )}
         </View>
@@ -78,22 +78,22 @@ export default function MatchCard({ match }: MatchCardProps) {
         <View style={styles.playerContainer}>
           <Text style={[
             styles.playerName,
-            match.winnerId === match.player2Id && styles.winner
+            match.winner_id === match.player2_id && styles.winner
           ]}>
-            {match.player2Name}
+            {match.player2?.name || 'Player 2'}
           </Text>
           {match.status === 'completed' && (
             <Text style={[
               styles.score,
-              match.winnerId === match.player2Id && styles.winnerScore
+              match.winner_id === match.player2_id && styles.winnerScore
             ]}>
-              {match.player2Score}
+              {match.player2_score}
             </Text>
           )}
         </View>
       </View>
 
-      <Text style={styles.week}>Week {match.week}</Text>
+      <Text style={styles.week}>Week {match.week || 1}</Text>
     </View>
   );
 }
