@@ -17,7 +17,7 @@ export default function MatchesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
 
-  const loadMatches = async () => {
+  const loadMatches = useCallback(async () => {
     try {
       const matchesData = await DataService.getMatches();
       setMatches(matchesData);
@@ -25,7 +25,7 @@ export default function MatchesScreen() {
     } catch (error) {
       console.log('Error loading matches:', error);
     }
-  };
+  }, [activeFilter]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -57,7 +57,7 @@ export default function MatchesScreen() {
   useFocusEffect(
     useCallback(() => {
       loadMatches();
-    }, [])
+    }, [loadMatches])
   );
 
   const FilterButton = ({ filter, title }: { filter: FilterType, title: string }) => (

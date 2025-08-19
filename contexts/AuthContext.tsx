@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { User, AuthState } from '../types';
 import { supabase } from '../app/integrations/supabase/client';
 import { Alert } from 'react-native';
@@ -18,6 +18,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user: null,
     loading: true,
   });
+
+  const checkAuthState = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        const user: User = {
+          id: session.user.id,
+          email: session.user.email!,
+          name: session.user.user_metadata?.name,
+          created_at: session.user.created_at,
+        };
+        
+        setAuthState({
+          isAuthenticated: true,
+          user,
+          loading: false,
+        });
+        
+        // Create or update user profile
+        await createOrUpdateUserProfile(user);
+      } else {
+        setAuthState({
+          isAuthenticated: false,
+          user: null,
+          loading: false,
+        });
+      }
+    } catch (error) {
+      console.log('Error checking auth state:', error);
+      setAuthState({
+        isAuthenticated: false,
+        user: null,
+        loading: false,
+      });
+    }
+  }, []);
 
   useEffect(() => {
     checkAuthState();
@@ -54,44 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
-
-  const checkAuthState = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        const user: User = {
-          id: session.user.id,
-          email: session.user.email!,
-          name: session.user.user_metadata?.name,
-          created_at: session.user.created_at,
-        };
-        
-        setAuthState({
-          isAuthenticated: true,
-          user,
-          loading: false,
-        });
-        
-        // Create or update user profile
-        await createOrUpdateUserProfile(user);
-      } else {
-        setAuthState({
-          isAuthenticated: false,
-          user: null,
-          loading: false,
-        });
-      }
-    } catch (error) {
-      console.log('Error checking auth state:', error);
-      setAuthState({
-        isAuthenticated: false,
-        user: null,
-        loading: false,
-      });
-    }
-  };
+  }, [checkAuthState]);
 
   const createOrUpdateUserProfile = async (user: User) => {
     try {

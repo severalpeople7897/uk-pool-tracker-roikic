@@ -18,7 +18,7 @@ export default function ProfileTab() {
   const [refreshing, setRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
 
-  const loadProfileData = async () => {
+  const loadProfileData = useCallback(async () => {
     if (!user?.id) return;
     
     try {
@@ -39,7 +39,7 @@ export default function ProfileTab() {
     } catch (error) {
       console.log('Error loading profile data:', error);
     }
-  };
+  }, [user?.id]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -50,7 +50,7 @@ export default function ProfileTab() {
   useFocusEffect(
     useCallback(() => {
       loadProfileData();
-    }, [user?.id])
+    }, [loadProfileData])
   );
 
   const handleLogout = () => {

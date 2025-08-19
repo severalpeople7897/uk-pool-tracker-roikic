@@ -61,11 +61,16 @@ export default function CreateTeamScreen() {
       return;
     }
 
+    if (!user?.id) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+
     setLoading(true);
     try {
       const teamData = {
         name: teamName.trim(),
-        created_by: user?.id!,
+        created_by: user.id,
         memberIds: selectedPlayers.map(p => p.id)
       };
 

@@ -5,7 +5,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import MatchCard from '../../components/MatchCard';
 import { DataService } from '../../services/dataService';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { colors, commonStyles } from '../../styles/commonStyles';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -15,13 +15,7 @@ export default function PlayerDetailScreen() {
   const [playerMatches, setPlayerMatches] = useState<Match[]>([]);
   const insets = useSafeAreaInsets();
 
-  useEffect(() => {
-    if (id) {
-      loadPlayerData();
-    }
-  }, [id]);
-
-  const loadPlayerData = async () => {
+  const loadPlayerData = useCallback(async () => {
     try {
       const [players, matches] = await Promise.all([
         DataService.getPlayers(),
@@ -40,7 +34,13 @@ export default function PlayerDetailScreen() {
     } catch (error) {
       console.log('Error loading player data:', error);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    if (id) {
+      loadPlayerData();
+    }
+  }, [id, loadPlayerData]);
 
   const StatCard = ({ title, value, subtitle }: { title: string; value: string; subtitle?: string }) => (
     <View style={styles.statCard}>
