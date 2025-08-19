@@ -7,11 +7,13 @@ import PlayerCard from '../../components/PlayerCard';
 import { router, useFocusEffect } from 'expo-router';
 import { Player } from '../../types';
 import { DataService } from '../../services/dataService';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function PlayersScreen() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const loadPlayers = async () => {
     try {
@@ -43,9 +45,10 @@ export default function PlayersScreen() {
   );
 
   return (
-    <View style={commonStyles.container}>
+    <View style={[commonStyles.container, { paddingTop: insets.top }]}>
       <ScrollView 
         style={commonStyles.content}
+        contentContainerStyle={{ paddingBottom: 80 + insets.bottom }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }

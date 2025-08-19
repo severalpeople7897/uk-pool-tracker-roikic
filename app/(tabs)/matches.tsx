@@ -1,23 +1,27 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { colors, commonStyles } from '../../styles/commonStyles';
-import MatchCard from '../../components/MatchCard';
+import { useFocusEffect } from 'expo-router';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
+import MatchCard from '../../components/MatchCard';
 import { Match } from '../../types';
 import { DataService } from '../../services/dataService';
-import { useFocusEffect } from 'expo-router';
+import { colors, commonStyles } from '../../styles/commonStyles';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type FilterType = 'all' | 'completed' | 'scheduled';
+type FilterType = 'all' | 'recent' | 'today';
 
 export default function MatchesScreen() {
   const [matches, setMatches] = useState<Match[]>([]);
-  const [selectedFilter, setSelectedFilter] = useState<FilterType>('all');
+  const [filteredMatches, setFilteredMatches] = useState<Match[]>([]);
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [refreshing, setRefreshing] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const loadMatches = async () => {
     try {
       const matchesData = await DataService.getMatches();
-      setMatches(matchesData.reverse()); // Most recent first
+      setMatches(matchesData);
+      filterMatches(matchesData, activeFilter);
     } catch (error) {
       console.log('Error loading matches:', error);
     }
@@ -29,40 +33,55 @@ export default function MatchesScreen() {
     setRefreshing(false);
   };
 
+  const filterMatches = (matchesData: Match[], filter: FilterType) => {
+    let filtered = [...matchesData];
+    
+    switch (filter) {
+      case 'recent':
+        filtered = matchesData.slice(-10).reverse();
+        break;
+      case 'today':
+        const today = new Date().toDateString();
+        filtered = matchesData.filter(match => 
+          new Date(match.date).toDateString() === today
+        );
+        break;
+      default:
+        filtered = matchesData.reverse();
+    }
+    
+    setFilteredMatches(filtered);
+    setActiveFilter(filter);
+  };
+
   useFocusEffect(
     useCallback(() => {
       loadMatches();
     }, [])
   );
 
-  const filteredMatches = matches.filter(match => {
-    if (selectedFilter === 'all') return true;
-    return match.status === selectedFilter;
-  });
-
   const FilterButton = ({ filter, title }: { filter: FilterType, title: string }) => (
     <TouchableOpacity
       style={[
         styles.filterButton,
-        selectedFilter === filter && styles.activeFilterButton,
+        activeFilter === filter && styles.activeFilterButton
       ]}
-      onPress={() => setSelectedFilter(filter)}
+      onPress={() => filterMatches(matches, filter)}
     >
-      <Text
-        style={[
-          styles.filterButtonText,
-          selectedFilter === filter && styles.activeFilterButtonText,
-        ]}
-      >
+      <Text style={[
+        styles.filterText,
+        activeFilter === filter && styles.activeFilterText
+      ]}>
         {title}
       </Text>
     </TouchableOpacity>
   );
 
   return (
-    <View style={commonStyles.container}>
+    <View style={[commonStyles.container, { paddingTop: insets.top }]}>
       <ScrollView 
         style={commonStyles.content}
+        contentContainerStyle={{ paddingBottom: 80 + insets.bottom }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -72,8 +91,8 @@ export default function MatchesScreen() {
           
           <View style={styles.filterContainer}>
             <FilterButton filter="all" title="All" />
-            <FilterButton filter="completed" title="Completed" />
-            <FilterButton filter="scheduled" title="Scheduled" />
+            <FilterButton filter="recent" title="Recent" />
+            <FilterButton filter="today" title="Today" />
           </View>
 
           {filteredMatches.length > 0 ? (
@@ -99,7 +118,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: colors.grey,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -107,12 +126,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
-  filterButtonText: {
+  filterText: {
     fontSize: 14,
     fontWeight: '500',
     color: colors.text,
   },
-  activeFilterButtonText: {
+  activeFilterText: {
     color: colors.backgroundAlt,
   },
   emptyText: {

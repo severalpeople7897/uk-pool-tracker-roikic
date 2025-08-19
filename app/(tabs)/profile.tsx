@@ -1,32 +1,40 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, RefreshControl } from 'react-native';
-import { colors, commonStyles } from '../../styles/commonStyles';
+import { useFocusEffect } from 'expo-router';
+import Icon from '../../components/Icon';
+import { Player, Match } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { DataService } from '../../services/dataService';
-import { Player, Match } from '../../types';
-import { useFocusEffect } from 'expo-router';
 import MatchCard from '../../components/MatchCard';
 import Button from '../../components/Button';
-import Icon from '../../components/Icon';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, RefreshControl } from 'react-native';
+import { colors, commonStyles } from '../../styles/commonStyles';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProfileTab() {
   const { user, logout } = useAuth();
-  const [playerProfile, setPlayerProfile] = useState<Player | null>(null);
-  const [recentMatches, setRecentMatches] = useState<Match[]>([]);
+  const [playerData, setPlayerData] = useState<Player | null>(null);
+  const [playerMatches, setPlayerMatches] = useState<Match[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const loadProfileData = async () => {
-    if (!user) return;
+    if (!user?.id) return;
     
     try {
-      const players = await DataService.getPlayers();
-      const userPlayer = players.find(p => p.user_id === user.id);
-      setPlayerProfile(userPlayer || null);
-
-      if (userPlayer) {
-        const matches = await DataService.getMatchesForPlayer(userPlayer.id);
-        setRecentMatches(matches.slice(0, 5)); // Last 5 matches
+      const [players, matches] = await Promise.all([
+        DataService.getPlayers(),
+        DataService.getMatches(),
+      ]);
+      
+      const currentPlayer = players.find(p => p.user_id === user.id);
+      setPlayerData(currentPlayer || null);
+      
+      if (currentPlayer) {
+        const userMatches = matches.filter(
+          match => match.player1Id === currentPlayer.id || match.player2Id === currentPlayer.id
+        );
+        setPlayerMatches(userMatches.slice(-5).reverse()); // Last 5 matches
       }
     } catch (error) {
       console.log('Error loading profile data:', error);
@@ -42,7 +50,7 @@ export default function ProfileTab() {
   useFocusEffect(
     useCallback(() => {
       loadProfileData();
-    }, [user])
+    }, [user?.id])
   );
 
   const handleLogout = () => {
@@ -51,7 +59,7 @@ export default function ProfileTab() {
       'Are you sure you want to logout?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', style: 'destructive', onPress: logout },
+        { text: 'Logout', onPress: logout, style: 'destructive' },
       ]
     );
   };
@@ -65,65 +73,65 @@ export default function ProfileTab() {
   );
 
   return (
-    <View style={commonStyles.container}>
+    <View style={[commonStyles.container, { paddingTop: insets.top }]}>
       <ScrollView 
         style={commonStyles.content}
+        contentContainerStyle={{ paddingBottom: 80 + insets.bottom }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
         <View style={commonStyles.section}>
-          <Text style={commonStyles.title}>My Profile</Text>
+          <Text style={commonStyles.title}>Profile</Text>
           
           <View style={styles.profileHeader}>
             <View style={styles.avatarContainer}>
-              <Icon name="person" size={40} color={colors.primary} />
+              <Icon name="person-circle" size={80} color={colors.primary} />
             </View>
-            <Text style={styles.userName}>{user?.name || user?.email}</Text>
-            <Text style={styles.userEmail}>{user?.email}</Text>
+            <Text style={styles.playerName}>{user?.name || 'Unknown Player'}</Text>
+            <Text style={styles.playerEmail}>{user?.email}</Text>
           </View>
 
-          {playerProfile ? (
+          {playerData && (
             <>
-              <View style={styles.rankContainer}>
-                <Text style={styles.rankText}>League Ranking</Text>
-                <View style={styles.rankBadge}>
-                  <Text style={styles.rankNumber}>#{playerProfile.ranking}</Text>
-                </View>
-              </View>
-
-              <View style={styles.statsGrid}>
-                <StatCard title="Games Played" value={playerProfile.games_played.toString()} />
-                <StatCard title="Games Won" value={playerProfile.games_won.toString()} />
-                <StatCard title="Games Lost" value={playerProfile.games_lost.toString()} />
-                <StatCard title="Win Rate" value={`${playerProfile.win_percentage}%`} />
-                <StatCard title="Points" value={playerProfile.points.toString()} />
-                <StatCard title="Total Matches" value={recentMatches.length.toString()} />
+              <View style={styles.statsContainer}>
+                <StatCard 
+                  title="Ranking" 
+                  value={`#${playerData.ranking || 'N/A'}`} 
+                />
+                <StatCard 
+                  title="Wins" 
+                  value={playerData.wins?.toString() || '0'} 
+                />
+                <StatCard 
+                  title="Losses" 
+                  value={playerData.losses?.toString() || '0'} 
+                />
+                <StatCard 
+                  title="Points" 
+                  value={playerData.points?.toString() || '0'} 
+                />
               </View>
 
               <Text style={styles.sectionTitle}>Recent Matches</Text>
-              {recentMatches.length > 0 ? (
-                recentMatches.map((match) => (
+              {playerMatches.length > 0 ? (
+                playerMatches.map((match) => (
                   <MatchCard key={match.id} match={match} />
                 ))
               ) : (
-                <Text style={styles.emptyText}>No matches played yet</Text>
+                <Text style={styles.emptyText}>No recent matches</Text>
               )}
             </>
-          ) : (
-            <View style={styles.noProfileContainer}>
-              <Icon name="person-add" size={60} color={colors.textSecondary} />
-              <Text style={styles.noProfileText}>
-                Your player profile will appear here once you join a game
-              </Text>
-            </View>
           )}
 
-          <Button
-            text="Logout"
-            onPress={handleLogout}
-            style={styles.logoutButton}
-          />
+          <View style={styles.buttonContainer}>
+            <Button
+              title="Logout"
+              onPress={handleLogout}
+              style={styles.logoutButton}
+              textStyle={styles.logoutButtonText}
+            />
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -133,70 +141,34 @@ export default function ProfileTab() {
 const styles = StyleSheet.create({
   profileHeader: {
     alignItems: 'center',
-    marginBottom: 24,
-    paddingVertical: 20,
+    marginBottom: 32,
   },
   avatarContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.card,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: colors.primary,
+    marginBottom: 16,
   },
-  userName: {
+  playerName: {
     fontSize: 24,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 4,
   },
-  userEmail: {
+  playerEmail: {
     fontSize: 16,
     color: colors.textSecondary,
   },
-  rankContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  rankText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  rankBadge: {
-    backgroundColor: colors.accent,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  rankNumber: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  statsGrid: {
+  statsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    marginBottom: 32,
+    gap: 12,
   },
   statCard: {
     backgroundColor: colors.card,
     borderRadius: 12,
     padding: 16,
-    width: '48%',
-    marginBottom: 12,
     alignItems: 'center',
+    minWidth: '22%',
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -207,13 +179,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   statTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
-    color: colors.text,
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   statSubtitle: {
-    fontSize: 12,
+    fontSize: 10,
     color: colors.textSecondary,
     marginTop: 2,
   },
@@ -228,22 +200,14 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 20,
-    marginBottom: 20,
   },
-  noProfileContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    marginBottom: 20,
-  },
-  noProfileText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 16,
-    paddingHorizontal: 20,
+  buttonContainer: {
+    marginTop: 32,
   },
   logoutButton: {
-    marginTop: 20,
-    backgroundColor: colors.error,
+    backgroundColor: colors.danger,
+  },
+  logoutButtonText: {
+    color: colors.backgroundAlt,
   },
 });

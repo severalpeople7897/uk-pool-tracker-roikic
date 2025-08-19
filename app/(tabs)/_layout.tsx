@@ -2,12 +2,14 @@
 import { colors } from '../../styles/commonStyles';
 import Icon from '../../components/Icon';
 import { Tabs } from 'expo-router';
-import { TouchableOpacity, Alert } from 'react-native';
+import { TouchableOpacity, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
   const { logout, user } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const handleAddGame = () => {
     router.push('/add-game');
@@ -33,11 +35,16 @@ export default function TabLayout() {
           backgroundColor: colors.backgroundAlt,
           borderTopWidth: 1,
           borderTopColor: colors.border,
-          paddingBottom: 8,
+          paddingBottom: Math.max(insets.bottom, 8),
           paddingTop: 8,
-          height: 60,
+          height: 60 + Math.max(insets.bottom, 0),
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
         },
         headerShown: false,
+        tabBarHideOnKeyboard: Platform.OS === 'android',
       }}
     >
       <Tabs.Screen

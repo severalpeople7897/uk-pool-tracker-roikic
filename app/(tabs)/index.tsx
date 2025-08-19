@@ -7,11 +7,13 @@ import MatchCard from '../../components/MatchCard';
 import { router, useFocusEffect } from 'expo-router';
 import { Player, Match } from '../../types';
 import { DataService } from '../../services/dataService';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function LeagueScreen() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [recentMatches, setRecentMatches] = useState<Match[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const loadData = async () => {
     try {
@@ -44,9 +46,10 @@ export default function LeagueScreen() {
   };
 
   return (
-    <View style={commonStyles.container}>
+    <View style={[commonStyles.container, { paddingTop: insets.top }]}>
       <ScrollView 
         style={commonStyles.content}
+        contentContainerStyle={{ paddingBottom: 80 + insets.bottom }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }

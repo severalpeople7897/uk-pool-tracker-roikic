@@ -1,17 +1,15 @@
 
-import { Stack, useGlobalSearchParams } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { commonStyles } from '../styles/commonStyles';
-import { Platform, SafeAreaView } from 'react-native';
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { setupErrorLogging } from '../utils/errorLogger';
 import { AuthProvider } from '../contexts/AuthContext';
 
 export default function RootLayout() {
-  const insets = useSafeAreaInsets();
   const [isReady, setIsReady] = useState(false);
-  const params = useGlobalSearchParams();
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -35,7 +33,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <SafeAreaView style={[commonStyles.wrapper, { paddingTop: Platform.OS === 'android' ? insets.top : 0 }]}>
+        <View style={commonStyles.wrapper}>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="(tabs)" />
@@ -45,7 +43,7 @@ export default function RootLayout() {
             <Stack.Screen name="player/[id]" />
           </Stack>
           <StatusBar style="dark" />
-        </SafeAreaView>
+        </View>
       </AuthProvider>
     </SafeAreaProvider>
   );

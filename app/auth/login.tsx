@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import Icon from '../../components/Icon';
 import {
   View,
   Text,
@@ -11,35 +11,37 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { router } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
-import { colors, commonStyles } from '../../styles/commonStyles';
+import React, { useState } from 'react';
 import Button from '../../components/Button';
-import Icon from '../../components/Icon';
+import { router } from 'expo-router';
+import { colors, commonStyles } from '../../styles/commonStyles';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
+    if (!email || !password) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
     setLoading(true);
     try {
-      const result = await login(email.trim(), password);
+      const result = await login(email, password);
       if (result.success) {
         router.replace('/(tabs)');
       } else {
-        Alert.alert('Login Failed', result.message || 'Invalid email or password');
+        Alert.alert('Login Failed', result.message || 'Invalid credentials');
       }
     } catch (error) {
       console.log('Login error:', error);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+      Alert.alert('Error', 'An error occurred during login');
     } finally {
       setLoading(false);
     }
@@ -50,54 +52,61 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={commonStyles.container}
+    <KeyboardAvoidingView 
+      style={[commonStyles.container, { paddingTop: insets.top }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.container}>
+      <ScrollView 
+        style={commonStyles.content}
+        contentContainerStyle={{ 
+          flexGrow: 1, 
+          justifyContent: 'center',
+          paddingBottom: insets.bottom + 20 
+        }}
+      >
+        <View style={commonStyles.section}>
           <View style={styles.header}>
-            <Icon name="trophy" size={60} color={colors.accent} />
-            <Text style={styles.title}>Pool League</Text>
+            <Icon name="trophy" size={60} color={colors.primary} />
+            <Text style={commonStyles.title}>Pool League</Text>
             <Text style={styles.subtitle}>Sign in to your account</Text>
           </View>
 
           <View style={styles.form}>
             <View style={styles.inputContainer}>
-              <Icon name="mail" size={20} color={colors.textSecondary} style={styles.inputIcon} />
+              <Text style={styles.label}>Email</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Email"
                 value={email}
                 onChangeText={setEmail}
+                placeholder="Enter your email"
                 keyboardType="email-address"
                 autoCapitalize="none"
-                autoCorrect={false}
                 placeholderTextColor={colors.textSecondary}
               />
             </View>
 
             <View style={styles.inputContainer}>
-              <Icon name="lock-closed" size={20} color={colors.textSecondary} style={styles.inputIcon} />
+              <Text style={styles.label}>Password</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Password"
                 value={password}
                 onChangeText={setPassword}
+                placeholder="Enter your password"
                 secureTextEntry
                 placeholderTextColor={colors.textSecondary}
               />
             </View>
 
             <Button
-              text={loading ? "Signing in..." : "Sign In"}
+              title={loading ? "Signing in..." : "Sign In"}
               onPress={handleLogin}
-              style={[styles.loginButton, loading && styles.disabledButton]}
+              disabled={loading}
+              style={styles.loginButton}
             />
 
             <TouchableOpacity onPress={navigateToRegister} style={styles.registerLink}>
               <Text style={styles.registerText}>
-                Don&apos;t have an account? <Text style={styles.registerTextBold}>Sign up</Text>
+                Don't have an account? <Text style={styles.registerTextBold}>Sign up</Text>
               </Text>
             </TouchableOpacity>
           </View>
@@ -108,63 +117,44 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-  },
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 40,
-  },
   header: {
     alignItems: 'center',
     marginBottom: 40,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: colors.primary,
-    marginTop: 16,
-    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
     color: colors.textSecondary,
     textAlign: 'center',
+    marginTop: 8,
   },
   form: {
     width: '100%',
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  input: {
     backgroundColor: colors.card,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    height: 56,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
+    padding: 16,
     fontSize: 16,
     color: colors.text,
   },
   loginButton: {
-    marginTop: 8,
-    marginBottom: 24,
-  },
-  disabledButton: {
-    opacity: 0.6,
+    marginTop: 20,
+    marginBottom: 20,
   },
   registerLink: {
     alignItems: 'center',
+    paddingVertical: 16,
   },
   registerText: {
     fontSize: 16,
