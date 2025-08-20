@@ -1,50 +1,42 @@
 
+import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { commonStyles } from '../styles/commonStyles';
-import { View } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { setupErrorLogging } from '../utils/errorLogger';
 import { AuthProvider } from '../contexts/AuthContext';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import { colors } from '../styles/commonStyles';
+import ErrorBoundary from '../components/ErrorBoundary';
+import { setupErrorLogging } from '../utils/errorLogger';
 
 export default function RootLayout() {
-  const [isReady, setIsReady] = useState(false);
-
   useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        setupErrorLogging();
-        console.log('App initialized successfully');
-      } catch (error) {
-        console.log('Error initializing app:', error);
-      } finally {
-        setIsReady(true);
-      }
-    };
-
-    initializeApp();
+    // Setup global error logging
+    setupErrorLogging();
+    console.log('App initialized with error logging');
   }, []);
 
-  if (!isReady) {
-    return null; // Or a loading screen
-  }
-
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <View style={commonStyles.wrapper}>
-          <Stack screenOptions={{ headerShown: false }}>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <StatusBar style="dark" backgroundColor={colors.background} />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.background },
+            }}
+          >
             <Stack.Screen name="index" />
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="auth/login" />
             <Stack.Screen name="auth/register" />
             <Stack.Screen name="add-game" />
+            <Stack.Screen name="create-team" />
+            <Stack.Screen name="teams" />
             <Stack.Screen name="player/[id]" />
           </Stack>
-          <StatusBar style="dark" />
-        </View>
-      </AuthProvider>
-    </SafeAreaProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }

@@ -21,6 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const createOrUpdateUserProfile = useCallback(async (user: User) => {
     try {
+      console.log('Creating/updating user profile for:', user.email);
       const { data: existingProfile } = await supabase
         .from('user_profiles')
         .select('*')
@@ -42,6 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           console.log('User profile created successfully');
         }
+      } else {
+        console.log('User profile already exists');
       }
     } catch (error) {
       console.log('Error creating/updating user profile:', error);
@@ -50,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuthState = useCallback(async () => {
     try {
+      console.log('Checking auth state...');
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
@@ -60,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           created_at: session.user.created_at,
         };
         
+        console.log('User authenticated:', user.email);
         setAuthState({
           isAuthenticated: true,
           user,
@@ -69,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Create or update user profile
         await createOrUpdateUserProfile(user);
       } else {
+        console.log('No authenticated user found');
         setAuthState({
           isAuthenticated: false,
           user: null,
@@ -122,8 +128,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [checkAuthState, createOrUpdateUserProfile]);
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
+  const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
     try {
+      console.log('Attempting login for:', email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -134,15 +141,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, message: error.message };
       }
 
+      console.log('Login successful');
       return { success: true };
     } catch (error) {
       console.log('Login error:', error);
       return { success: false, message: 'An unexpected error occurred' };
     }
-  };
+  }, []);
 
-  const register = async (email: string, password: string, name: string): Promise<{ success: boolean; message?: string }> => {
+  const register = useCallback(async (email: string, password: string, name: string): Promise<{ success: boolean; message?: string }> => {
     try {
+      console.log('Attempting registration for:', email);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -160,20 +169,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.user && !data.session) {
+        console.log('Registration successful, email verification required');
         return { 
           success: true, 
           message: 'Registration successful! Please check your email to verify your account before logging in.' 
         };
       }
 
+      console.log('Registration successful');
       return { success: true };
     } catch (error) {
       console.log('Registration error:', error);
       return { success: false, message: 'An unexpected error occurred' };
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       console.log('Logging out...');
       const { error } = await supabase.auth.signOut();
@@ -188,7 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('Logout error:', error);
       Alert.alert('Error', 'Failed to logout. Please try again.');
     }
-  };
+  }, []);
 
   return (
     <AuthContext.Provider

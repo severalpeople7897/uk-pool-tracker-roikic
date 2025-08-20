@@ -2,9 +2,52 @@
 import { Player, Match, Team, TeamMember, MatchFoul } from '../types';
 import { supabase } from '../app/integrations/supabase/client';
 
+class DataServiceError extends Error {
+  constructor(message: string, public originalError?: any) {
+    super(message);
+    this.name = 'DataServiceError';
+  }
+}
+
 export class DataService {
+  private static async withRetry<T>(
+    operation: () => Promise<T>,
+    operationName: string,
+    maxRetries: number = 3
+  ): Promise<T> {
+    let lastError: any;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`${operationName} - Attempt ${attempt}/${maxRetries}`);
+        const result = await operation();
+        if (attempt > 1) {
+          console.log(`${operationName} - Succeeded on attempt ${attempt}`);
+        }
+        return result;
+      } catch (error) {
+        lastError = error;
+        console.log(`${operationName} - Failed on attempt ${attempt}:`, error);
+        
+        if (attempt === maxRetries) {
+          break;
+        }
+        
+        // Exponential backoff
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+        console.log(`${operationName} - Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    
+    throw new DataServiceError(
+      `${operationName} failed after ${maxRetries} attempts`,
+      lastError
+    );
+  }
+
   static async getPlayers(): Promise<Player[]> {
-    try {
+    return this.withRetry(async () => {
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -13,7 +56,7 @@ export class DataService {
 
       if (error) {
         console.log('Error getting players:', error);
-        return [];
+        throw error;
       }
 
       // Update rankings
@@ -22,15 +65,13 @@ export class DataService {
         ranking: index + 1,
       }));
 
+      console.log(`Successfully loaded ${playersWithRankings.length} players`);
       return playersWithRankings;
-    } catch (error) {
-      console.log('Error getting players:', error);
-      return [];
-    }
+    }, 'getPlayers');
   }
 
   static async getMatches(): Promise<Match[]> {
-    try {
+    return this.withRetry(async () => {
       const { data, error } = await supabase
         .from('matches')
         .select(`
@@ -68,14 +109,12 @@ export class DataService {
 
       if (error) {
         console.log('Error getting matches:', error);
-        return [];
+        throw error;
       }
 
+      console.log(`Successfully loaded ${(data || []).length} matches`);
       return data || [];
-    } catch (error) {
-      console.log('Error getting matches:', error);
-      return [];
-    }
+    }, 'getMatches');
   }
 
   static async addMatch(matchData: {
@@ -95,7 +134,7 @@ export class DataService {
     winning_team_id?: string | null;
     fouls?: { player_id: string; foul_count: number; foul_details?: string }[];
   }): Promise<Match> {
-    try {
+    return this.withRetry(async () => {
       const { fouls, ...matchInsertData } = matchData;
       
       const { data, error } = await supabase
@@ -150,21 +189,17 @@ export class DataService {
 
         if (foulError) {
           console.log('Error adding fouls:', foulError);
+          // Don't throw here as the match was created successfully
         }
       }
 
-      console.log('Match added:', data);
+      console.log('Match added successfully:', data.id);
       return data;
-    } catch (error) {
-      console.log('Error adding match:', error);
-      throw error;
-    }
+    }, 'addMatch');
   }
 
-
-
   static async getPlayerById(id: string): Promise<Player | null> {
-    try {
+    return this.withRetry(async () => {
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -173,18 +208,16 @@ export class DataService {
 
       if (error) {
         console.log('Error getting player by id:', error);
-        return null;
+        throw error;
       }
 
+      console.log(`Successfully loaded player: ${data?.name}`);
       return data;
-    } catch (error) {
-      console.log('Error getting player by id:', error);
-      return null;
-    }
+    }, 'getPlayerById');
   }
 
   static async getMatchesForPlayer(playerId: string): Promise<Match[]> {
-    try {
+    return this.withRetry(async () => {
       const { data, error } = await supabase
         .from('matches')
         .select(`
@@ -223,19 +256,17 @@ export class DataService {
 
       if (error) {
         console.log('Error getting matches for player:', error);
-        return [];
+        throw error;
       }
 
+      console.log(`Successfully loaded ${(data || []).length} matches for player ${playerId}`);
       return data || [];
-    } catch (error) {
-      console.log('Error getting matches for player:', error);
-      return [];
-    }
+    }, 'getMatchesForPlayer');
   }
 
   // Team management methods
   static async getTeams(): Promise<Team[]> {
-    try {
+    return this.withRetry(async () => {
       const { data, error } = await supabase
         .from('teams')
         .select(`
@@ -249,14 +280,12 @@ export class DataService {
 
       if (error) {
         console.log('Error getting teams:', error);
-        return [];
+        throw error;
       }
 
+      console.log(`Successfully loaded ${(data || []).length} teams`);
       return data || [];
-    } catch (error) {
-      console.log('Error getting teams:', error);
-      return [];
-    }
+    }, 'getTeams');
   }
 
   static async createTeam(teamData: {
@@ -264,7 +293,7 @@ export class DataService {
     created_by: string;
     memberIds: string[];
   }): Promise<Team> {
-    try {
+    return this.withRetry(async () => {
       const { memberIds, ...teamInsertData } = teamData;
       
       const { data: team, error } = await supabase
@@ -313,15 +342,13 @@ export class DataService {
         throw fetchError;
       }
 
+      console.log('Team created successfully:', completeTeam.name);
       return completeTeam;
-    } catch (error) {
-      console.log('Error creating team:', error);
-      throw error;
-    }
+    }, 'createTeam');
   }
 
   static async getTeamById(id: string): Promise<Team | null> {
-    try {
+    return this.withRetry(async () => {
       const { data, error } = await supabase
         .from('teams')
         .select(`
@@ -336,13 +363,11 @@ export class DataService {
 
       if (error) {
         console.log('Error getting team by id:', error);
-        return null;
+        throw error;
       }
 
+      console.log(`Successfully loaded team: ${data?.name}`);
       return data;
-    } catch (error) {
-      console.log('Error getting team by id:', error);
-      return null;
-    }
+    }, 'getTeamById');
   }
 }
