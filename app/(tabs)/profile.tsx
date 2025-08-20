@@ -41,11 +41,11 @@ export default function ProfileTab() {
     }
   }, [user?.id]);
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadProfileData();
     setRefreshing(false);
-  };
+  }, [loadProfileData]);
 
   useFocusEffect(
     useCallback(() => {

@@ -141,7 +141,7 @@ export default function CreateTeamScreen() {
                       {player.name}
                     </Text>
                     <Text style={styles.playerStats}>
-                      {player.games_played} games • {player.win_percentage.toFixed(1)}% win rate
+                      {player.games_played} games • {player.win_percentage ? player.win_percentage.toFixed(1) : '0.0'}% win rate
                     </Text>
                   </View>
                   <View style={[

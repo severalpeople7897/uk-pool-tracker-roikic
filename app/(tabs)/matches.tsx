@@ -17,23 +17,7 @@ export default function MatchesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
 
-  const loadMatches = useCallback(async () => {
-    try {
-      const matchesData = await DataService.getMatches();
-      setMatches(matchesData);
-      filterMatches(matchesData, activeFilter);
-    } catch (error) {
-      console.log('Error loading matches:', error);
-    }
-  }, [activeFilter]);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadMatches();
-    setRefreshing(false);
-  };
-
-  const filterMatches = (matchesData: Match[], filter: FilterType) => {
+  const filterMatches = useCallback((matchesData: Match[], filter: FilterType) => {
     let filtered = [...matchesData];
     
     switch (filter) {
@@ -52,6 +36,22 @@ export default function MatchesScreen() {
     
     setFilteredMatches(filtered);
     setActiveFilter(filter);
+  }, []);
+
+  const loadMatches = useCallback(async () => {
+    try {
+      const matchesData = await DataService.getMatches();
+      setMatches(matchesData);
+      filterMatches(matchesData, activeFilter);
+    } catch (error) {
+      console.log('Error loading matches:', error);
+    }
+  }, [activeFilter, filterMatches]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadMatches();
+    setRefreshing(false);
   };
 
   useFocusEffect(

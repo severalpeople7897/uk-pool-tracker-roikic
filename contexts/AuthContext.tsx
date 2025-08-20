@@ -19,6 +19,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading: true,
   });
 
+  const createOrUpdateUserProfile = useCallback(async (user: User) => {
+    try {
+      const { data: existingProfile } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!existingProfile) {
+        // Create new profile
+        const { error } = await supabase
+          .from('user_profiles')
+          .insert({
+            user_id: user.id,
+            name: user.name || user.email.split('@')[0],
+            email: user.email,
+          });
+
+        if (error) {
+          console.log('Error creating user profile:', error);
+        } else {
+          console.log('User profile created successfully');
+        }
+      }
+    } catch (error) {
+      console.log('Error creating/updating user profile:', error);
+    }
+  }, []);
+
   const checkAuthState = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -54,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading: false,
       });
     }
-  }, []);
+  }, [createOrUpdateUserProfile]);
 
   useEffect(() => {
     checkAuthState();
@@ -91,36 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [checkAuthState]);
-
-  const createOrUpdateUserProfile = async (user: User) => {
-    try {
-      const { data: existingProfile } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!existingProfile) {
-        // Create new profile
-        const { error } = await supabase
-          .from('user_profiles')
-          .insert({
-            user_id: user.id,
-            name: user.name || user.email.split('@')[0],
-            email: user.email,
-          });
-
-        if (error) {
-          console.log('Error creating user profile:', error);
-        } else {
-          console.log('User profile created successfully');
-        }
-      }
-    } catch (error) {
-      console.log('Error creating/updating user profile:', error);
-    }
-  };
+  }, [checkAuthState, createOrUpdateUserProfile]);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
     try {
