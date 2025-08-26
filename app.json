@@ -1,7 +1,7 @@
 {
 	"expo": {
-		"name": "Natively",
-		"slug": "Natively",
+		"name": "uk-pool-tracker",
+		"slug": "uk-pool-tracker-roikic",
 		"version": "1.0.0",
 		"orientation": "portrait",
 		"icon": "./assets/images/natively-dark.png",
