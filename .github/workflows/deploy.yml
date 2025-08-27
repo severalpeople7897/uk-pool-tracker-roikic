@@ -5,6 +5,9 @@ on:
     branches:
       - main  # runs whenever main is updated
 
+permissions:
+  contents: write  # ⬅️ This is required for GitHub Pages deploy
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -28,3 +31,4 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist  # ⬅️ This is where expo puts the web build by default
