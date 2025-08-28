@@ -28,6 +28,13 @@
       }
     </style>
     <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/uk-pool-tracker-roikic/sw.js");
+      });
+    }
+    </script>
+    <script>
     window.canInstall = false;
     window.deferredPrompt = null;
 
